@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CC Gen - Developer Testing Tool</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- Background particles -->
+    <div class="bg-particles" id="particles"></div>
+
+    <!-- Header -->
+    <header class="header">
+        <div class="logo">
+            <i class="fas fa-credit-card"></i>
+            <span>CC Gen</span>
+        </div>
+        <nav>
+            <a href="#generator">Generator</a>
+            <a href="#about">About</a>
+        </nav>
+        <div class="badge">
+            <i class="fas fa-flask"></i> Developer Tool
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container">
+        <!-- 3D Card Preview -->
+        <section class="card-preview-section">
+            <div class="card-3d-wrapper" id="cardWrapper">
+                <div class="card-3d" id="card3d">
+                    <!-- Front -->
+                    <div class="card-face card-front">
+                        <div class="card-chip">
+                            <div class="chip-line"></div>
+                            <div class="chip-line"></div>
+                            <div class="chip-line"></div>
+                            <div class="chip-line"></div>
+                        </div>
+                        <div class="card-contactless">
+                            <i class="fas fa-wifi"></i>
+                        </div>
+                        <div class="card-number" id="displayCardNumber">4532 •••• •••• ••••</div>
+                        <div class="card-bottom">
+                            <div class="card-holder">
+                                <span class="label">CARD HOLDER</span>
+                                <span class="value" id="displayName">JOHN DOE</span>
+                            </div>
+                            <div class="card-expiry">
+                                <span class="label">EXPIRES</span>
+                                <span class="value" id="displayExpiry">12/28</span>
+                            </div>
+                        </div>
+                        <div class="card-brand" id="displayBrand">
+                            <i class="fab fa-cc-visa"></i>
+                        </div>
+                    </div>
+                    <!-- Back -->
+                    <div class="card-face card-back">
+                        <div class="card-stripe"></div>
+                        <div class="card-cvv-section">
+                            <span class="label">CVV</span>
+                            <div class="cvv-box" id="displayCvv">•••</div>
+                        </div>
+                        <div class="card-info-back">
+                            <p>This card is for developer testing purposes only.</p>
+                            <p>Not valid for real transactions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <p class="flip-hint"><i class="fas fa-sync-alt"></i> Hover card to flip</p>
+        </section>
+
+        <!-- Generator Panel -->
+        <section class="generator-panel" id="generator">
+            <h2><i class="fas fa-bolt"></i> Generate Test Card</h2>
+            
+            <div class="form-grid">
+                <div class="form-group">
+                    <label><i class="fas fa-hashtag"></i> BIN (First 6 digits)</label>
+                    <input type="text" id="binInput" placeholder="e.g. 453201" maxlength="6">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-layer-group"></i> Quantity</label>
+                    <select id="quantity">
+                        <option value="1">1 Card</option>
+                        <option value="5">5 Cards</option>
+                        <option value="10" selected>10 Cards</option>
+                        <option value="25">25 Cards</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Expiry Month</label>
+                    <select id="expMonth">
+                        <option value="random">Random</option>
+                        <option value="01">01</option>
+                        <option value="02">02</option>
+                        <option value="03">03</option>
+                        <option value="04">04</option>
+                        <option value="05">05</option>
+                        <option value="06">06</option>
+                        <option value="07">07</option>
+                        <option value="08">08</option>
+                        <option value="09">09</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar-alt"></i> Expiry Year</label>
+                    <select id="expYear">
+                        <option value="random">Random</option>
+                        <option value="2025">2025</option>
+                        <option value="2026">2026</option>
+                        <option value="2027">2027</option>
+                        <option value="2028">2028</option>
+                        <option value="2029">2029</option>
+                        <option value="2030">2030</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-lock"></i> CVV</label>
+                    <select id="cvvType">
+                        <option value="random">Random</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-credit-card"></i> Card Brand</label>
+                    <select id="cardBrand">
+                        <option value="auto">Auto Detect</option>
+                        <option value="visa">Visa</option>
+                        <option value="mastercard">Mastercard</option>
+                        <option value="amex">American Express</option>
+                        <option value="discover">Discover</option>
+                    </select>
+                </div>
+            </div>
+
+            <button class="generate-btn" id="generateBtn">
+                <i class="fas fa-bolt"></i> Generate Cards
+            </button>
+        </section>
+
+        <!-- Results -->
+        <section class="results-section" id="results" style="display:none;">
+            <div class="results-header">
+                <h3><i class="fas fa-list"></i> Generated Cards</h3>
+                <div class="results-actions">
+                    <button class="action-btn" id="copyAllBtn">
+                        <i class="fas fa-copy"></i> Copy All
+                    </button>
+                    <button class="action-btn" id="clearBtn">
+                        <i class="fas fa-trash"></i> Clear
+                    </button>
+                </div>
+            </div>
+            <div class="results-table-wrapper">
+                <table class="results-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Card Number</th>
+                            <th>Expiry</th>
+                            <th>CVV</th>
+                            <th>Brand</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody id="resultsBody"></tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- About Section -->
+        <section class="about-section" id="about">
+            <div class="about-card">
+                <h3><i class="fas fa-info-circle"></i> About This Tool</h3>
+                <p>This is a <strong>developer testing tool</strong> that generates valid-format credit card numbers using the Luhn algorithm. These numbers are for testing payment gateways, e-commerce checkout flows, and form validation only.</p>
+                <div class="warning-box">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <span>These card numbers are NOT real and cannot be used for actual transactions. This tool is intended solely for software development and testing purposes.</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <p>&copy; 2024 CC Gen - Developer Testing Tool | For Educational & Testing Purposes Only</p>
+    </footer>
+
+    <!-- Toast Notification -->
+    <div class="toast" id="toast">
+        <i class="fas fa-check-circle"></i>
+        <span id="toastMsg">Copied!</span>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
