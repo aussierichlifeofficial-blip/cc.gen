@@ -301,17 +301,53 @@ async function refreshInbox() {
 
 async function viewMessage(msgId) {
     if (!currentToken) return;
+    const list = document.getElementById('inboxList');
+    
+    // Show loading in viewer
+    list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading message...</p></div></div></div>`;
+
     try {
         const res = await fetch(MAIL_API + '/messages/' + msgId, {
             headers: { 'Authorization': 'Bearer ' + currentToken }
         });
-        if (!res.ok) return;
+        if (!res.ok) throw new Error('Failed to load');
         const msg = await res.json();
-        const content = msg.text || msg.html || msg.intro || 'No content';
-        copyToClipboard(content);
-        showToast('Message content copied!');
+
+        const fromAddr = msg.from?.address || msg.from?.name || 'Unknown';
+        const subject = msg.subject || '(No subject)';
+        const date = new Date(msg.createdAt).toLocaleString();
+        const htmlContent = msg.html || '';
+        const textContent = msg.text || msg.intro || 'No content';
+
+        list.innerHTML = `
+            <div class="msg-viewer">
+                <div class="msg-viewer-header">
+                    <button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button>
+                    <button class="msg-copy-btn" onclick="copyToClipboard(\`${textContent.replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)"><i class="fas fa-copy"></i> Copy Text</button>
+                </div>
+                <div class="msg-meta">
+                    <div class="msg-subject">${subject}</div>
+                    <div class="msg-details">
+                        <span><i class="fas fa-user"></i> ${fromAddr}</span>
+                        <span><i class="fas fa-clock"></i> ${date}</span>
+                    </div>
+                </div>
+                <div class="msg-viewer-body">
+                    ${htmlContent ? '<iframe class="msg-iframe" srcdoc="' + htmlContent.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"></iframe>' : ''}
+                    <div class="msg-text-content">${textContent.replace(/\n/g, '<br>')}</div>
+                </div>
+            </div>
+        `;
+
+        // If HTML content, render it properly in iframe
+        if (htmlContent) {
+            const iframe = list.querySelector('.msg-iframe');
+            if (iframe) {
+                iframe.srcdoc = `<html><head><style>body{font-family:Arial,sans-serif;font-size:14px;color:#333;padding:16px;margin:0;background:#fff;word-wrap:break-word;}a{color:#6c5ce7;}img{max-width:100%;height:auto;}</style></head><body>${htmlContent}</body></html>`;
+            }
+        }
     } catch (err) {
-        showToast('Could not load message');
+        list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Could not load message</p></div></div></div>`;
     }
 }
 
@@ -331,6 +367,7 @@ function renderInbox() {
             <div class="email-info">
                 <div class="email-from">${mail.from}</div>
                 <div class="email-subject">${mail.subject}</div>
+                ${mail.intro ? '<div class="email-intro">' + mail.intro.slice(0, 80) + '...</div>' : ''}
             </div>
             <div class="email-time">${mail.time}</div>
         </div>
