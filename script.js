@@ -77,18 +77,36 @@ function formatCardNumber(number) {
     return number.replace(/(.{4})/g, '$1 ').trim();
 }
 
-// ==================== TAB NAVIGATION ====================
+// ==================== NAVIGATION ====================
 
-function initTabs() {
-    const tabBtns = document.querySelectorAll('.tab-btn');
-    tabBtns.forEach(btn => {
-        btn.addEventListener('click', () => {
-            tabBtns.forEach(b => b.classList.remove('active'));
-            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-            btn.classList.add('active');
-            const tab = btn.getAttribute('data-tab');
-            document.getElementById('tab-' + tab).classList.add('active');
+function initNavigation() {
+    const toolCards = document.querySelectorAll('.tool-card');
+    const hero = document.getElementById('hero');
+    const toolsSection = document.querySelector('.tools-section');
+    const panelContainer = document.getElementById('toolPanelContainer');
+    const backBtn = document.getElementById('backBtn');
+
+    toolCards.forEach(card => {
+        card.addEventListener('click', () => {
+            const tool = card.getAttribute('data-tool');
+            // Hide hero and tools grid
+            hero.style.display = 'none';
+            toolsSection.style.display = 'none';
+            // Show panel container
+            panelContainer.style.display = 'block';
+            // Hide all panels, show selected
+            document.querySelectorAll('.tool-panel').forEach(p => p.style.display = 'none');
+            document.getElementById('panel-' + tool).style.display = 'block';
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         });
+    });
+
+    backBtn.addEventListener('click', () => {
+        panelContainer.style.display = 'none';
+        hero.style.display = 'flex';
+        toolsSection.style.display = 'block';
+        window.scrollTo({ top: document.getElementById('tools').offsetTop - 80, behavior: 'smooth' });
     });
 }
 
@@ -487,7 +505,7 @@ function checkCards() {
 // ==================== INIT ====================
 
 document.addEventListener('DOMContentLoaded', () => {
-    initTabs();
+    initNavigation();
 
     // CC Generator
     document.getElementById('generateBtn').addEventListener('click', generateCards);
