@@ -175,7 +175,7 @@
             <div class="panel">
                 <div class="panel-header">
                     <h2><i class="fas fa-envelope"></i> Temporary Email</h2>
-                    <p class="panel-desc">Generate disposable email addresses for testing</p>
+                    <p class="panel-desc">Real disposable email powered by mail.tm API - receive actual emails</p>
                 </div>
                 <div class="temp-mail-controls">
                     <div class="email-display">
@@ -187,17 +187,7 @@
                     </div>
                     <div class="btn-group mail-btns">
                         <button class="btn-3d btn-primary" id="generateEmailBtn"><i class="fas fa-plus"></i> Generate New Email</button>
-                        <button class="btn-3d btn-small btn-accent" id="refreshInboxBtn"><i class="fas fa-sync-alt"></i> Refresh Inbox</button>
-                    </div>
-                    <div class="form-group" style="margin-top: 12px;">
-                        <label><i class="fas fa-globe"></i> Domain</label>
-                        <select id="emailDomain">
-                            <option value="@tempmail.dev">@tempmail.dev</option>
-                            <option value="@fakebox.org">@fakebox.org</option>
-                            <option value="@mailtest.io">@mailtest.io</option>
-                            <option value="@devnull.email">@devnull.email</option>
-                            <option value="@trashmail.net">@trashmail.net</option>
-                        </select>
+                        <button class="btn-3d btn-small btn-accent" id="refreshInboxBtn"><i class="fas fa-sync-alt"></i> Refresh</button>
                     </div>
                 </div>
             </div>
@@ -207,7 +197,7 @@
                     <span class="inbox-count" id="inboxCount">0 messages</span>
                 </div>
                 <div class="inbox-list" id="inboxList">
-                    <div class="empty-state"><i class="fas fa-envelope-open"></i><p>No emails yet. Generate an email and wait for messages.</p></div>
+                    <div class="empty-state"><i class="fas fa-envelope-open"></i><p>No emails yet. Generate an email and send a test mail to it.<br><small>Click on any message to copy its content.</small></p></div>
                 </div>
             </div>
         </div>

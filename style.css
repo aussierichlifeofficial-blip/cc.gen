@@ -701,6 +701,27 @@ body {
     .mail-btns .btn-3d { width: 100%; }
     .btn-group { width: 100%; }
     .btn-group .btn-3d { flex: 1; }
+
+    /* Mobile CC Results - vertical card layout */
+    .data-table thead { display: none; }
+    .data-table tr {
+        display: flex; flex-direction: column;
+        background: var(--bg-input); border: 1px solid var(--border);
+        border-radius: 12px; padding: 14px 16px; margin-bottom: 10px;
+        gap: 6px;
+    }
+    .data-table td {
+        display: flex; align-items: center; gap: 8px;
+        padding: 4px 0; border-bottom: none; font-size: 0.85rem;
+    }
+    .data-table td::before {
+        content: attr(data-label);
+        font-size: 0.68rem; font-weight: 600; color: var(--text-secondary);
+        text-transform: uppercase; letter-spacing: 0.5px;
+        min-width: 70px; font-family: 'Inter', sans-serif;
+    }
+    .data-table td:first-child { display: none; }
+    .data-table td:last-child { justify-content: flex-end; padding-top: 8px; border-top: 1px solid var(--border); }
 }
 
 @media (max-width: 400px) {

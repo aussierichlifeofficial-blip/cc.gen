@@ -167,7 +167,7 @@ function generateCards() {
         generatedCards.push({ number, expiry: expiry.display, cvv, brand: det });
 
         const tr = document.createElement('tr');
-        tr.innerHTML = `<td>${i+1}</td><td>${formatCardNumber(number)}</td><td>${expiry.display}</td><td>${cvv}</td><td><i class="${getBrandIcon(det)} brand-icon"></i></td><td><button class="copy-row-btn" onclick="copyToClipboard('${number}|${expiry.display}|${cvv}')"><i class="fas fa-copy"></i></button></td>`;
+        tr.innerHTML = `<td data-label="#">${i+1}</td><td data-label="Card">${formatCardNumber(number)}</td><td data-label="Expiry">${expiry.display}</td><td data-label="CVV">${cvv}</td><td data-label="Brand"><i class="${getBrandIcon(det)} brand-icon"></i></td><td data-label=""><button class="copy-row-btn" onclick="copyToClipboard('${number}|${expiry.display}|${cvv}')"><i class="fas fa-copy"></i> Copy</button></td>`;
         tbody.appendChild(tr);
     }
 
@@ -189,62 +189,145 @@ function clearResults() {
 
 
 
-// ==================== TEMP MAIL ====================
+// ==================== TEMP MAIL (mail.tm API) ====================
 
 let currentEmail = '';
-let fakeInbox = [];
+let currentToken = '';
+let currentPassword = '';
+let mailInbox = [];
+let refreshTimer = null;
 
-const emailUsernames = ['dev.test', 'john.smith', 'testing.acc', 'user.demo', 'quick.test', 'alpha.beta', 'code.ninja', 'test.runner', 'debug.mode', 'qa.tester', 'sample.user', 'mail.check', 'auto.gen', 'random.box', 'proxy.mail'];
+const MAIL_API = 'https://api.mail.tm';
 
-function generateTempEmail() {
-    const domain = document.getElementById('emailDomain').value;
-    const user = randomElement(emailUsernames) + randomInt(10, 9999);
-    currentEmail = user + domain;
-    document.getElementById('tempEmailAddress').textContent = currentEmail;
-    fakeInbox = [];
-    renderInbox();
-    showToast('New email generated!');
-    
-    // Simulate incoming emails after delay
-    setTimeout(() => simulateIncomingMail(), randomInt(2000, 4000));
-}
-
-function simulateIncomingMail() {
-    if (!currentEmail) return;
-    const senders = ['noreply@github.com', 'support@stripe.com', 'verify@paypal.com', 'no-reply@aws.amazon.com', 'team@netlify.com', 'hello@vercel.com', 'security@google.com', 'notifications@facebook.com'];
-    const subjects = ['Verify your email address', 'Your verification code: ' + randomInt(100000, 999999), 'Welcome to our platform!', 'Action required: Confirm your account', 'Your OTP is ' + randomInt(1000, 9999), 'Password reset requested', 'New login from unknown device', 'Complete your registration'];
-    
-    const numEmails = randomInt(1, 3);
-    for (let i = 0; i < numEmails; i++) {
-        fakeInbox.push({
-            from: randomElement(senders),
-            subject: randomElement(subjects),
-            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-            body: 'This is a simulated email for testing purposes. Code: ' + randomInt(100000, 999999)
-        });
+async function getAvailableDomains() {
+    try {
+        const res = await fetch(MAIL_API + '/domains');
+        const data = await res.json();
+        return data['hydra:member'] || data.member || [];
+    } catch (e) {
+        return [];
     }
-    renderInbox();
 }
 
-function refreshInbox() {
-    if (!currentEmail) { showToast('Generate an email first!'); return; }
-    simulateIncomingMail();
-    showToast('Inbox refreshed!');
+async function generateTempEmail() {
+    const btn = document.getElementById('generateEmailBtn');
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating...';
+    btn.disabled = true;
+
+    try {
+        // Get available domains
+        const domains = await getAvailableDomains();
+        let domain = '@mail.tm';
+        if (domains.length > 0) {
+            domain = '@' + domains[0].domain;
+        }
+
+        // Generate random username
+        const username = 'user' + randomInt(100000, 999999);
+        const address = username + domain;
+        currentPassword = 'Pass' + randomInt(100000, 999999) + '!';
+
+        // Create account
+        const createRes = await fetch(MAIL_API + '/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: address, password: currentPassword })
+        });
+
+        if (!createRes.ok) {
+            const err = await createRes.json();
+            throw new Error(err.detail || 'Failed to create account');
+        }
+
+        // Get token
+        const tokenRes = await fetch(MAIL_API + '/token', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ address: address, password: currentPassword })
+        });
+
+        if (!tokenRes.ok) throw new Error('Failed to get token');
+
+        const tokenData = await tokenRes.json();
+        currentToken = tokenData.token;
+        currentEmail = address;
+
+        document.getElementById('tempEmailAddress').textContent = currentEmail;
+        mailInbox = [];
+        renderInbox();
+        showToast('Email created: ' + currentEmail);
+
+        // Start auto-refresh every 5 seconds
+        if (refreshTimer) clearInterval(refreshTimer);
+        refreshTimer = setInterval(refreshInbox, 5000);
+
+    } catch (err) {
+        showToast('Error: ' + err.message);
+        console.error('Mail API error:', err);
+    } finally {
+        btn.innerHTML = '<i class="fas fa-plus"></i> Generate New Email';
+        btn.disabled = false;
+    }
+}
+
+async function refreshInbox() {
+    if (!currentEmail || !currentToken) { 
+        showToast('Generate an email first!'); 
+        return; 
+    }
+
+    try {
+        const res = await fetch(MAIL_API + '/messages', {
+            headers: { 'Authorization': 'Bearer ' + currentToken }
+        });
+
+        if (!res.ok) throw new Error('Failed to fetch messages');
+
+        const data = await res.json();
+        mailInbox = (data['hydra:member'] || data.member || []).map(msg => ({
+            id: msg.id,
+            from: msg.from?.address || msg.from?.name || 'Unknown',
+            subject: msg.subject || '(No subject)',
+            time: new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            intro: msg.intro || '',
+            seen: msg.seen
+        }));
+
+        renderInbox();
+    } catch (err) {
+        console.error('Refresh error:', err);
+    }
+}
+
+async function viewMessage(msgId) {
+    if (!currentToken) return;
+    try {
+        const res = await fetch(MAIL_API + '/messages/' + msgId, {
+            headers: { 'Authorization': 'Bearer ' + currentToken }
+        });
+        if (!res.ok) return;
+        const msg = await res.json();
+        const content = msg.text || msg.html || msg.intro || 'No content';
+        copyToClipboard(content);
+        showToast('Message content copied!');
+    } catch (err) {
+        showToast('Could not load message');
+    }
 }
 
 function renderInbox() {
     const list = document.getElementById('inboxList');
     const count = document.getElementById('inboxCount');
-    count.textContent = fakeInbox.length + ' messages';
+    count.textContent = mailInbox.length + ' messages';
 
-    if (fakeInbox.length === 0) {
-        list.innerHTML = '<div class="empty-state"><i class="fas fa-envelope-open"></i><p>No emails yet. Generate an email and wait for messages.</p></div>';
+    if (mailInbox.length === 0) {
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-envelope-open"></i><p>No emails yet. Waiting for incoming messages...<br><small>Auto-refreshes every 5 seconds</small></p></div>';
         return;
     }
 
-    list.innerHTML = fakeInbox.map((mail, i) => `
-        <div class="email-item" onclick="copyToClipboard('${mail.body}')">
-            <div class="email-icon"><i class="fas fa-envelope"></i></div>
+    list.innerHTML = mailInbox.map(mail => `
+        <div class="email-item" onclick="viewMessage('${mail.id}')">
+            <div class="email-icon"><i class="fas fa-envelope${mail.seen ? '-open' : ''}"></i></div>
             <div class="email-info">
                 <div class="email-from">${mail.from}</div>
                 <div class="email-subject">${mail.subject}</div>
