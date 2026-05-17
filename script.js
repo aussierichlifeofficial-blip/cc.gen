@@ -77,7 +77,7 @@ function formatCardNumber(number) {
     return number.replace(/(.{4})/g, '$1 ').trim();
 }
 
-// ==================== NAVIGATION ====================
+// ==================== NAVIGATION (with browser history) ====================
 
 function initNavigation() {
     const toolCards = document.querySelectorAll('.tool-card');
@@ -86,28 +86,55 @@ function initNavigation() {
     const panelContainer = document.getElementById('toolPanelContainer');
     const backBtn = document.getElementById('backBtn');
 
+    function showTool(tool, pushState) {
+        hero.style.display = 'none';
+        toolsSection.style.display = 'none';
+        panelContainer.style.display = 'block';
+        document.querySelectorAll('.tool-panel').forEach(p => p.style.display = 'none');
+        document.getElementById('panel-' + tool).style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (pushState) {
+            history.pushState({ view: 'tool', tool: tool }, '', '#' + tool);
+        }
+    }
+
+    function showHome(pushState) {
+        panelContainer.style.display = 'none';
+        hero.style.display = 'flex';
+        toolsSection.style.display = 'block';
+        if (pushState) {
+            history.pushState({ view: 'home' }, '', '#');
+        }
+    }
+
     toolCards.forEach(card => {
         card.addEventListener('click', () => {
             const tool = card.getAttribute('data-tool');
-            // Hide hero and tools grid
-            hero.style.display = 'none';
-            toolsSection.style.display = 'none';
-            // Show panel container
-            panelContainer.style.display = 'block';
-            // Hide all panels, show selected
-            document.querySelectorAll('.tool-panel').forEach(p => p.style.display = 'none');
-            document.getElementById('panel-' + tool).style.display = 'block';
-            // Scroll to top
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            showTool(tool, true);
         });
     });
 
     backBtn.addEventListener('click', () => {
-        panelContainer.style.display = 'none';
-        hero.style.display = 'flex';
-        toolsSection.style.display = 'block';
-        window.scrollTo({ top: document.getElementById('tools').offsetTop - 80, behavior: 'smooth' });
+        history.back();
     });
+
+    // Handle browser back/forward buttons
+    window.addEventListener('popstate', (e) => {
+        if (e.state && e.state.view === 'tool') {
+            showTool(e.state.tool, false);
+        } else {
+            showHome(false);
+        }
+    });
+
+    // Handle initial load with hash
+    const hash = window.location.hash.replace('#', '');
+    if (hash && document.getElementById('panel-' + hash)) {
+        showTool(hash, false);
+        history.replaceState({ view: 'tool', tool: hash }, '', '#' + hash);
+    } else {
+        history.replaceState({ view: 'home' }, '', window.location.pathname);
+    }
 }
 
 
@@ -303,8 +330,11 @@ async function viewMessage(msgId) {
     if (!currentToken) return;
     const list = document.getElementById('inboxList');
     
+    // Push state so phone back button returns to inbox
+    history.pushState({ view: 'tool', tool: 'tempmail', subview: 'message', msgId: msgId }, '', '#tempmail-msg');
+    
     // Show loading in viewer
-    list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading message...</p></div></div></div>`;
+    list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="backToInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>Loading message...</p></div></div></div>`;
 
     try {
         const res = await fetch(MAIL_API + '/messages/' + msgId, {
@@ -322,8 +352,8 @@ async function viewMessage(msgId) {
         list.innerHTML = `
             <div class="msg-viewer">
                 <div class="msg-viewer-header">
-                    <button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button>
-                    <button class="msg-copy-btn" onclick="copyToClipboard(\`${textContent.replace(/`/g, "'").replace(/\\/g, '\\\\')}\`)"><i class="fas fa-copy"></i> Copy Text</button>
+                    <button class="msg-back-btn" onclick="backToInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button>
+                    <button class="msg-copy-btn" onclick="copyToClipboard(document.querySelector('.msg-text-content')?.innerText || '')"><i class="fas fa-copy"></i> Copy Text</button>
                 </div>
                 <div class="msg-meta">
                     <div class="msg-subject">${subject}</div>
@@ -333,8 +363,8 @@ async function viewMessage(msgId) {
                     </div>
                 </div>
                 <div class="msg-viewer-body">
-                    ${htmlContent ? '<iframe class="msg-iframe" srcdoc="' + htmlContent.replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '"></iframe>' : ''}
-                    <div class="msg-text-content">${textContent.replace(/\n/g, '<br>')}</div>
+                    ${htmlContent ? '' : '<div class="msg-text-content">' + textContent.replace(/\n/g, '<br>') + '</div>'}
+                    ${htmlContent ? '<iframe class="msg-iframe" sandbox="allow-same-origin"></iframe>' : ''}
                 </div>
             </div>
         `;
@@ -343,13 +373,30 @@ async function viewMessage(msgId) {
         if (htmlContent) {
             const iframe = list.querySelector('.msg-iframe');
             if (iframe) {
-                iframe.srcdoc = `<html><head><style>body{font-family:Arial,sans-serif;font-size:14px;color:#333;padding:16px;margin:0;background:#fff;word-wrap:break-word;}a{color:#6c5ce7;}img{max-width:100%;height:auto;}</style></head><body>${htmlContent}</body></html>`;
+                iframe.srcdoc = '<html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><style>body{font-family:-apple-system,BlinkMacSystemFont,Arial,sans-serif;font-size:14px;color:#333;padding:16px;margin:0;background:#fff;word-wrap:break-word;line-height:1.6;}a{color:#6c5ce7;}img{max-width:100%;height:auto;}table{max-width:100%;}</style></head><body>' + htmlContent + '</body></html>';
+                // Auto-resize iframe height
+                iframe.onload = () => {
+                    try {
+                        iframe.style.height = (iframe.contentDocument.body.scrollHeight + 30) + 'px';
+                    } catch(e) {}
+                };
             }
         }
     } catch (err) {
-        list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="renderInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Could not load message</p></div></div></div>`;
+        list.innerHTML = `<div class="msg-viewer"><div class="msg-viewer-header"><button class="msg-back-btn" onclick="backToInbox()"><i class="fas fa-arrow-left"></i> Back to Inbox</button></div><div class="msg-viewer-body"><div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>Could not load message</p></div></div></div>`;
     }
 }
+
+function backToInbox() {
+    history.back();
+}
+
+// Listen for popstate to handle back from message view
+window.addEventListener('popstate', function(e) {
+    if (e.state && e.state.view === 'tool' && e.state.tool === 'tempmail' && !e.state.subview) {
+        renderInbox();
+    }
+});
 
 function renderInbox() {
     const list = document.getElementById('inboxList');
